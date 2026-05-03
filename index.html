@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ヘリオジュエリードロップ 受発注管理</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600&family=Zen+Kaku+Gothic+New:wght@300;400;500&display=swap');
+
+  :root {
+    --gold: #C9A84C;
+    --gold-light: #E8D5A3;
+    --gold-pale: #FAF5E9;
+    --deep: #1A1410;
+    --ink: #2E2519;
+    --stone: #6B5E4E;
+    --mist: #F5F0E8;
+    --border: #DDD0B8;
+    --success: #3D6B4F;
+    --info: #2E5480;
+    --warn: #7A5200;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    background: var(--mist);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--deep);
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  header h1 {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 17px;
+    color: var(--gold-light);
+    letter-spacing: 0.12em;
+    font-weight: 500;
+  }
+
+  header .sub {
+    font-size: 11px;
+    color: var(--stone);
+    letter-spacing: 0.08em;
+  }
+
+  .tabs {
+    display: flex;
+    background: var(--deep);
+    padding: 0 24px;
+    border-bottom: 1px solid #2E2519;
+  }
+
+  .tab {
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    font-size: 12px;
+    color: var(--stone);
+    padding: 10px 16px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    letter-spacing: 0.05em;
+    transition: color 0.2s;
+  }
+
+  .tab.active {
+    color: var(--gold-light);
+    border-bottom-color: var(--gold);
+  }
+
+  .main { padding: 20px; max-width: 700px; margin: 0 auto; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* メトリクス */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .metric {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .metric-label {
+    font-size: 10px;
+    color: var(--stone);
+    margin-bottom: 6px;
+    letter-spacing: 0.04em;
+  }
+
+  .metric-val {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 22px;
+    color: var(--deep);
+  }
+
+  /* 受注カード */
+  .order-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .order-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .order-card:hover {
+    border-color: var(--gold);
+    box-shadow: 0 2px 12px rgba(201,168,76,0.12);
+  }
+
+  .order-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+
+  .order-name {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 15px;
+    color: var(--deep);
+    font-weight: 600;
+  }
+
+  .order-meta {
+    font-size: 11px;
+    color: var(--stone);
+    margin-top: 2px;
+  }
+
+  .status-pill {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 10px;
+    white-space: nowrap;
+    letter-spacing: 0.04em;
+  }
+
+  .s0 { background: #F0EDE8; color: var(--stone); }
+  .s1 { background: #E8F0F8; color: var(--info); }
+  .s2 { background: #FAF0DC; color: var(--warn); }
+  .s3 { background: #EDF5F0; color: var(--success); }
+  .s4 { background: #FDF5E8; color: #8B5E00; }
+  .s5 { background: var(--deep); color: var(--gold-light); }
+
+  .order-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+  }
+
+  .jewel-tag {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    background: var(--gold-pale);
+    color: var(--stone);
+    border: 1px solid var(--border);
+  }
+
+  .jewel-tag.set {
+    background: #F5EDD8;
+    color: var(--warn);
+    border-color: var(--gold-light);
+  }
+
+  /* フォーム */
+  .form-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+
+  .form-title {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 14px;
+    color: var(--deep);
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 0.06em;
+  }
+
+  .field { margin-bottom: 12px; }
+
+  .field label {
+    display: block;
+    font-size: 11px;
+    color: var(--stone);
+    margin-bottom: 4px;
+    letter-spacing: 0.04em;
+  }
+
+  .field input,
+  .field select,
+  .field textarea {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--gold-pale);
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .field input:focus,
+  .field select:focus,
+  .field textarea:focus {
+    border-color: var(--gold);
+  }
+
+  .field textarea { min-height: 64px; resize: vertical; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* 惑星ボタン */
+  .planet-group { margin-bottom: 14px; }
+
+  .planet-group-label {
+    font-size: 10px;
+    color: var(--stone);
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+
+  .btn-group { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .pBtn {
+    font-size: 12px;
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    padding: 5px 13px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: white;
+    color: var(--stone);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .pBtn:hover { border-color: var(--gold); color: var(--ink); }
+  .pBtn.sel-out { background: #2E2519; border-color: #2E2519; color: var(--gold-light); }
+  .pBtn.sel-in { background: #3D6B4F; border-color: #3D6B4F; color: #D4EDDE; }
+  .pBtn.sel-asp { background: #7A5200; border-color: #7A5200; color: #FFE8B0; }
+
+  .jewel-preview {
+    margin-top: 14px;
+    padding: 12px 16px;
+    background: var(--gold-pale);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--stone);
+    min-height: 42px;
+    font-family: 'Shippori Mincho', serif;
+    letter-spacing: 0.06em;
+  }
+
+  /* ボタン */
+  .action-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+
+  .btn {
+    font-size: 12px;
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: all 0.15s;
+  }
+
+  .btn-save {
+    background: var(--deep);
+    color: var(--gold-light);
+    border-color: var(--deep);
+  }
+
+  .btn-save:hover { background: var(--ink); }
+
+  .btn-mail {
+    background: white;
+    color: var(--info);
+    border-color: #B8CEDE;
+  }
+
+  .btn-mail:hover { background: #EDF3F8; }
+
+  .btn-ghost {
+    background: white;
+    color: var(--stone);
+  }
+
+  .btn-ghost:hover { background: var(--gold-pale); }
+
+  /* メールボックス */
+  .mail-box {
+    margin-top: 14px;
+    background: var(--gold-pale);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    display: none;
+  }
+
+  .mail-text {
+    font-size: 13px;
+    color: var(--ink);
+    line-height: 1.9;
+    white-space: pre-wrap;
+    font-family: 'Zen Kaku Gothic New', sans-serif;
+  }
+
+  .copy-btn {
+    margin-top: 10px;
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: white;
+    color: var(--stone);
+    cursor: pointer;
+  }
+
+  /* 詳細 */
+  .back-btn {
+    font-size: 12px;
+    color: var(--info);
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 16px;
+    letter-spacing: 0.04em;
+  }
+
+  .progress-bar {
+    display: flex;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+
+  .prog-step {
+    flex: 1;
+    padding: 7px 4px;
+    text-align: center;
+    font-size: 10px;
+    color: var(--stone);
+    background: #F5F0E8;
+    border-right: 1px solid var(--border);
+    letter-spacing: 0.02em;
+  }
+
+  .prog-step:last-child { border-right: none; }
+  .prog-step.done { background: #EDF5F0; color: var(--success); }
+  .prog-step.active { background: var(--deep); color: var(--gold-light); font-weight: 500; }
+
+  /* 設定画面 */
+  .setting-box {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+
+  .setting-title {
+    font-family: 'Shippori Mincho', serif;
+    font-size: 14px;
+    color: var(--deep);
+    margin-bottom: 14px;
+    letter-spacing: 0.06em;
+  }
+
+  .notice {
+    font-size: 12px;
+    color: var(--stone);
+    background: var(--gold-pale);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    line-height: 1.7;
+    margin-top: 10px;
+  }
+
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    font-size: 13px;
+    color: var(--stone);
+    letter-spacing: 0.04em;
+  }
+
+  .loading {
+    text-align: center;
+    padding: 30px;
+    font-size: 13px;
+    color: var(--stone);
+  }
+
+  @media (max-width: 480px) {
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .row2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>ヘリオジュエリードロップ</h1>
+    <div class="sub">受発注管理システム</div>
+  </div>
+  <div class="sub" id="db-status">設定未完了</div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('list')">受注一覧</button>
+  <button class="tab" onclick="showTab('new')">新規登録</button>
+  <button class="tab" onclick="showTab('setting')">設定</button>
+</div>
+
+<div class="main">
+
+  <!-- 受注一覧 -->
+  <div id="list" class="screen active">
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">受注中</div><div class="metric-val" id="m-total">—</div></div>
+      <div class="metric"><div class="metric-label">確認待ち</div><div class="metric-val" id="m-wait">—</div></div>
+      <div class="metric"><div class="metric-label">制作中</div><div class="metric-val" id="m-making">—</div></div>
+      <div class="metric"><div class="metric-label">発送済み</div><div class="metric-val" id="m-sent">—</div></div>
+    </div>
+    <div class="order-list" id="order-list">
+      <div class="loading">データを読み込み中...</div>
+    </div>
+  </div>
+
+  <!-- 新規登録 -->
+  <div id="new" class="screen">
+    <div class="form-card">
+      <div class="form-title">基本情報</div>
+      <div class="row2">
+        <div class="field"><label>お客様名</label><input id="f-name" type="text" placeholder="山田 花子"></div>
+        <div class="field"><label>経路</label>
+          <select id="f-route">
+            <option>ストアーズ</option>
+            <option>直接受注</option>
+          </select>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>メールアドレス</label><input id="f-email" type="email" placeholder="example@mail.com"></div>
+        <div class="field"><label>個数</label>
+          <select id="f-qty">
+            <option>1個</option>
+            <option>2個</option>
+            <option>3個</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>メモ</label><textarea id="f-note" placeholder="催促・資材不足など自由に"></textarea></div>
+    </div>
+
+    <div class="form-card">
+      <div class="form-title">ジュエリー種類を選択</div>
+      <div class="planet-group">
+        <div class="planet-group-label">外惑星</div>
+        <div class="btn-group" id="outer-btns"></div>
+      </div>
+      <div class="planet-group">
+        <div class="planet-group-label">内惑星</div>
+        <div class="btn-group" id="inner-btns"></div>
+      </div>
+      <div class="planet-group">
+        <div class="planet-group-label">アスペクト</div>
+        <div class="btn-group" id="asp-btns"></div>
+      </div>
+      <div class="jewel-preview" id="jewel-preview">外惑星・内惑星・アスペクトを選ぶと表示されます</div>
+    </div>
+
+    <div class="action-row">
+      <button class="btn btn-save" onclick="saveOrder()">受注を登録する</button>
+      <button class="btn btn-mail" onclick="genMail('confirm')">確認メールを生成</button>
+    </div>
+    <div class="mail-box" id="new-mail-box">
+      <div class="mail-text" id="new-mail-text"></div>
+      <button class="copy-btn" onclick="copyText('new-mail-text', this)">コピー</button>
+    </div>
+  </div>
+
+  <!-- 詳細 -->
+  <div id="detail" class="screen">
+    <button class="back-btn" onclick="showTab('list')">← 一覧に戻る</button>
+    <div id="detail-content"></div>
+  </div>
+
+  <!-- 設定 -->
+  <div id="setting" class="screen">
+    <div class="setting-box">
+      <div class="setting-title">Supabase 接続設定</div>
+      <div class="field"><label>Supabase URL</label><input id="s-url" type="text" placeholder="https://xxxx.supabase.co"></div>
+      <div class="field"><label>Supabase Anon Key</label><input id="s-key" type="text" placeholder="eyJhbGci..."></div>
+      <div class="action-row">
+        <button class="btn btn-save" onclick="saveSettings()">設定を保存して接続</button>
+      </div>
+      <div class="notice">
+        SupabaseのプロジェクトページからURL とAnon Keyをコピーして貼り付けてください。<br>
+        設定は端末に保存されます。
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const OUTER = ['木星','土星','天王星','海王星','冥王星'];
+const INNER = ['水星','金星','地球','火星'];
+const ASPECT = ['0度','30度','45度','60度','72度','90度','120度','180度'];
+const STATUS = [
+  { label:'受注', cls:'s0' },
+  { label:'確認メール送信済み', cls:'s1' },
+  { label:'種類確定', cls:'s2' },
+  { label:'制作中', cls:'s3' },
+  { label:'発送準備中', cls:'s4' },
+  { label:'発送済み', cls:'s5' }
+];
+
+let sel = { outer: null, inner: null, asp: null };
+let supabase = null;
+let orders = [];
+let currentId = null;
+
+// ---- Supabase初期化 ----
+function initSupabase() {
+  const url = localStorage.getItem('sb_url');
+  const key = localStorage.getItem('sb_key');
+  if (url && key) {
+    try {
+      supabase = window.supabase.createClient(url, key);
+      document.getElementById('db-status').textContent = '接続済み';
+      document.getElementById('db-status').style.color = '#A8D5B8';
+      loadOrders();
+    } catch(e) {
+      document.getElementById('db-status').textContent = '接続エラー';
+    }
+  } else {
+    document.getElementById('order-list').innerHTML = '<div class="empty">設定タブからSupabaseを接続してください</div>';
+    updateMetrics([]);
+  }
+}
+
+function saveSettings() {
+  const url = document.getElementById('s-url').value.trim();
+  const key = document.getElementById('s-key').value.trim();
+  if (!url || !key) { alert('URLとKeyを入力してください'); return; }
+  localStorage.setItem('sb_url', url);
+  localStorage.setItem('sb_key', key);
+  initSupabase();
+  showTab('list');
+}
+
+// ---- データ読み込み ----
+async function loadOrders() {
+  if (!supabase) return;
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) {
+    document.getElementById('order-list').innerHTML = '<div class="empty">データの読み込みに失敗しました</div>';
+    return;
+  }
+  orders = data || [];
+  renderList();
+}
+
+// ---- 受注保存 ----
+async function saveOrder() {
+  if (!supabase) { alert('先に設定タブでSupabaseを接続してください'); return; }
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { alert('お客様名を入力してください'); return; }
+  const order = {
+    name,
+    route: document.getElementById('f-route').value,
+    email: document.getElementById('f-email').value.trim(),
+    qty: document.getElementById('f-qty').value,
+    note: document.getElementById('f-note').value.trim(),
+    jewel: (sel.outer && sel.inner && sel.asp) ? `${sel.outer}×${sel.inner}×${sel.asp}` : null,
+    status: 0
+  };
+  const { error } = await supabase.from('orders').insert([order]);
+  if (error) { alert('保存に失敗しました: ' + error.message); return; }
+  // フォームリセット
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-email').value = '';
+  document.getElementById('f-note').value = '';
+  sel = { outer: null, inner: null, asp: null };
+  document.querySelectorAll('.pBtn').forEach(b => b.classList.remove('sel-out','sel-in','sel-asp'));
+  updatePreview();
+  document.getElementById('new-mail-box').style.display = 'none';
+  await loadOrders();
+  showTab('list');
+}
+
+// ---- ステータス変更 ----
+async function changeStatus(id, dir) {
+  const o = orders.find(x => x.id === id);
+  const newStatus = Math.max(0, Math.min(5, o.status + dir));
+  await supabase.from('orders').update({ status: newStatus }).eq('id', id);
+  await loadOrders();
+  showDetail(id);
+}
+
+// ---- 一覧描画 ----
+function renderList() {
+  const el = document.getElementById('order-list');
+  if (!orders.length) {
+    el.innerHTML = '<div class="empty">受注データがありません</div>';
+    updateMetrics([]);
+    return;
+  }
+  el.innerHTML = orders.map(o => {
+    const st = STATUS[o.status];
+    const date = o.created_at ? new Date(o.created_at).toLocaleDateString('ja-JP') : '';
+    return `<div class="order-card" onclick="showDetail('${o.id}')">
+      <div class="order-top">
+        <div>
+          <div class="order-name">${o.name}</div>
+          <div class="order-meta">${date}　${o.route}　${o.qty}</div>
+        </div>
+        <span class="status-pill ${st.cls}">${st.label}</span>
+      </div>
+      <div class="order-bottom">
+        <span class="jewel-tag ${o.jewel ? 'set' : ''}">${o.jewel || '種類未確定'}</span>
+        <span class="order-meta">${o.email || ''}</span>
+      </div>
+    </div>`;
+  }).join('');
+  updateMetrics(orders);
+}
+
+function updateMetrics(list) {
+  document.getElementById('m-total').textContent = list.filter(o => o.status < 5).length;
+  document.getElementById('m-wait').textContent = list.filter(o => o.status === 1).length;
+  document.getElementById('m-making').textContent = list.filter(o => o.status === 3).length;
+  document.getElementById('m-sent').textContent = list.filter(o => o.status === 5).length;
+}
+
+// ---- 詳細画面 ----
+function showDetail(id) {
+  currentId = id;
+  const o = orders.find(x => String(x.id) === String(id));
+  const st = STATUS[o.status];
+  const date = o.created_at ? new Date(o.created_at).toLocaleDateString('ja-JP') : '';
+  const prog = STATUS.map((s, i) =>
+    `<div class="prog-step ${i < o.status ? 'done' : i === o.status ? 'active' : ''}">${s.label}</div>`
+  ).join('');
+  document.getElementById('detail-content').innerHTML = `
+    <div class="progress-bar">${prog}</div>
+    <div class="form-card">
+      <div class="form-title">${o.name} さま</div>
+      <div style="font-size:13px;color:var(--stone);line-height:2.2">
+        <div>経路：${o.route}　個数：${o.qty}</div>
+        <div>メール：${o.email || '未入力'}</div>
+        <div>ジュエリー：<span style="font-weight:500;color:${o.jewel ? 'var(--warn)' : 'var(--stone)'}">${o.jewel || '未確定'}</span></div>
+        ${o.note ? `<div>メモ：${o.note}</div>` : ''}
+        <div>受注日：${date}</div>
+      </div>
+    </div>
+    <div class="form-card">
+      <div class="form-title">ステータス管理</div>
+      <div class="action-row">
+        ${o.status > 0 ? `<button class="btn btn-ghost" onclick="changeStatus('${id}',-1)">← 戻す</button>` : ''}
+        ${o.status < 5 ? `<button class="btn btn-save" onclick="changeStatus('${id}',1)">次へ進む →</button>` : ''}
+      </div>
+    </div>
+    <div class="form-card">
+      <div class="form-title">メール生成</div>
+      <div class="action-row">
+        <button class="btn btn-mail" onclick="genDetailMail('${id}','confirm')">確認メール</button>
+        <button class="btn btn-mail" onclick="genDetailMail('${id}','ship')">発送メール</button>
+        <button class="btn btn-mail" onclick="genDetailMail('${id}','reply')">催促返信文</button>
+      </div>
+      <div class="mail-box" id="detail-mail-box">
+        <div class="mail-text" id="detail-mail-text"></div>
+        <button class="copy-btn" onclick="copyText('detail-mail-text', this)">コピー</button>
+      </div>
+    </div>`;
+  showTab('detail');
+}
+
+// ---- メール生成 ----
+function mailText(o, type) {
+  if (type === 'confirm') return `いつもありがとうございます。
+農家生まれの Nan です。
+
+このたびは「ヘリオジュエリードロップ」をお選びいただき、誠にありがとうございます。
+
+お客様のホロスコープに基づいてジュエリーをお仕立てするため、ご希望の種類についてご確認させてください。
+
+ご注文：${o.qty}
+
+ご不明な点がございましたら、お気軽にお申し付けください。
+どうぞよろしくお願いいたします。`;
+
+  if (type === 'ship') return `いつもありがとうございます。
+農家生まれの Nan です。
+
+${o.name} さまのヘリオジュエリードロップ（${o.jewel || ''}）を本日発送いたしました。
+到着まで今しばらくお待ちください。
+
+引き続きどうぞよろしくお願いいたします。`;
+
+  if (type === 'reply') return `この度はご連絡をいただきありがとうございます。
+農家生まれの Nan です。
+
+現在、${o.name} さまのジュエリーを丁寧に制作中でございます。
+今しばらくお待ちいただけますと幸いです。
+
+完成次第、すぐにご連絡いたします。
+どうぞよろしくお願いいたします。`;
+}
+
+function genMail(type) {
+  const o = {
+    name: document.getElementById('f-name').value || 'お客様',
+    qty: document.getElementById('f-qty').value,
+    jewel: sel.outer && sel.inner && sel.asp ? `${sel.outer}×${sel.inner}×${sel.asp}` : ''
+  };
+  document.getElementById('new-mail-text').textContent = mailText(o, type);
+  document.getElementById('new-mail-box').style.display = 'block';
+}
+
+function genDetailMail(id, type) {
+  const o = orders.find(x => String(x.id) === String(id));
+  document.getElementById('detail-mail-text').textContent = mailText(o, type);
+  document.getElementById('detail-mail-box').style.display = 'block';
+}
+
+function copyText(elId, btn) {
+  navigator.clipboard.writeText(document.getElementById(elId).textContent);
+  btn.textContent = 'コピーしました';
+  setTimeout(() => btn.textContent = 'コピー', 2000);
+}
+
+// ---- 惑星ボタン ----
+function mkBtns(arr, group, containerId) {
+  const el = document.getElementById(containerId);
+  arr.forEach(v => {
+    const b = document.createElement('button');
+    b.className = 'pBtn';
+    b.textContent = v;
+    b.onclick = () => {
+      el.querySelectorAll('.pBtn').forEach(x => x.classList.remove('sel-out','sel-in','sel-asp'));
+      b.classList.add('sel-' + group);
+      sel[group] = v;
+      updatePreview();
+    };
+    el.appendChild(b);
+  });
+}
+
+function updatePreview() {
+  const p = document.getElementById('jewel-preview');
+  const o = sel.outer || '外惑星';
+  const i = sel.inner || '内惑星';
+  const a = sel.asp || 'アスペクト';
+  const isComplete = sel.outer && sel.inner && sel.asp;
+  p.style.color = isComplete ? 'var(--warn)' : 'var(--stone)';
+  p.textContent = `${o}  ×  ${i}  ×  ${a}`;
+}
+
+// ---- タブ ----
+function showTab(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(name).classList.add('active');
+  const tabs = ['list', 'new', 'setting'];
+  const idx = tabs.indexOf(name);
+  if (idx >= 0) document.querySelectorAll('.tab')[idx].classList.add('active');
+  if (name === 'list') loadOrders();
+  if (name === 'setting') {
+    document.getElementById('s-url').value = localStorage.getItem('sb_url') || '';
+    document.getElementById('s-key').value = localStorage.getItem('sb_key') || '';
+  }
+}
+
+// ---- 初期化 ----
+mkBtns(OUTER, 'out', 'outer-btns');
+mkBtns(INNER, 'in', 'inner-btns');
+mkBtns(ASPECT, 'asp', 'asp-btns');
+initSupabase();
+</script>
+</body>
+</html>
