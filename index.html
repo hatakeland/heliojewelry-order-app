@@ -795,10 +795,6 @@ function showTab(name) {
   const idx = tabs.indexOf(name);
   if (idx >= 0) document.querySelectorAll('.tab')[idx].classList.add('active');
   if (name === 'list') loadOrders();
-  if (name === 'setting') {
-    document.getElementById('s-url').value = localStorage.getItem('sb_url') || '';
-    document.getElementById('s-key').value = localStorage.getItem('sb_key') || '';
-  }
 }
 
 // ---- 初期化 ----
