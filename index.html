@@ -565,33 +565,17 @@ let currentId = null;
 
 // ---- Supabase初期化 ----
 function initSupabase() {
-  const url = localStorage.getItem('sb_url');
-  const key = localStorage.getItem('sb_key');
-  if (url && key) {
-    try {
-      supabase = window.supabase.createClient(url, key);
-      document.getElementById('db-status').textContent = '接続済み';
-      document.getElementById('db-status').style.color = '#A8D5B8';
-      loadOrders();
-    } catch(e) {
-      document.getElementById('db-status').textContent = '接続エラー';
-    }
-  } else {
-    document.getElementById('order-list').innerHTML = '<div class="empty">設定タブからSupabaseを接続してください</div>';
-    updateMetrics([]);
+  const url = 'https://qcibbtoeccdfmvrjlare.supabase.co';
+  const key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjaWJidG9lY2NkZm12cmpsYXJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MjE5NTgsImV4cCI6MjA5MzM5Nzk1OH0.HShktnBNdnatgMWrqwYe8pZwyRt4wYZrYUFjMfRufSk';
+  try {
+    supabase = window.supabase.createClient(url, key);
+    document.getElementById('db-status').textContent = '接続済み';
+    document.getElementById('db-status').style.color = '#A8D5B8';
+    loadOrders();
+  } catch(e) {
+    document.getElementById('db-status').textContent = '接続エラー';
   }
 }
-
-function saveSettings() {
-  const url = document.getElementById('s-url').value.trim();
-  const key = document.getElementById('s-key').value.trim();
-  if (!url || !key) { alert('URLとKeyを入力してください'); return; }
-  localStorage.setItem('sb_url', url);
-  localStorage.setItem('sb_key', key);
-  initSupabase();
-  showTab('list');
-}
-
 // ---- データ読み込み ----
 async function loadOrders() {
   if (!supabase) return;
@@ -606,7 +590,6 @@ async function loadOrders() {
   orders = data || [];
   renderList();
 }
-
 // ---- 受注保存 ----
 async function saveOrder() {
   if (!supabase) { alert('先に設定タブでSupabaseを接続してください'); return; }
