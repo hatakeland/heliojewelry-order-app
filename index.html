@@ -72,6 +72,8 @@
     margin-bottom: -1px;
     letter-spacing: 0.05em;
     transition: color 0.2s;
+    position: relative;
+    z-index: 1;
   }
 
   .tab.active {
@@ -445,9 +447,9 @@
 </header>
 
 <div class="tabs">
-  <button class="tab active" onclick="showTab('list')">受注一覧</button>
-  <button class="tab" onclick="showTab('new')">新規登録</button>
-  <button class="tab" onclick="showTab('setting')">設定</button>
+  <button class="tab active" onclick="showTab('list')" type="button">受注一覧</button>
+  <button class="tab" onclick="showTab('new')" type="button">新規登録</button>
+  <button class="tab" onclick="showTab('setting')" type="button">設定</button>
 </div>
 
 <div class="main">
@@ -529,12 +531,13 @@
     <div class="setting-box">
       <div class="setting-title">Supabase 接続設定</div>
       <div class="field"><label>Supabase URL</label><input id="s-url" type="text" placeholder="https://xxxx.supabase.co"></div>
-      <div class="field"><label>Supabase Anon Key</label><input id="s-key" type="text" placeholder="eyJhbGci..."></div>
+      <div class="field"><label>Anon Key</label><input id="s-key" type="text" placeholder="eyJhbGci..."></div>
       <div class="action-row">
-        <button class="btn btn-save" onclick="saveSettings()">設定を保存して接続</button>
+        <button type="button" class="btn btn-save" onclick="saveSettings()">設定を保存して接続</button>
       </div>
       <div class="notice">
-        SupabaseのプロジェクトページからURL とAnon Keyをコピーして貼り付けてください。<br>
+        Supabase URL：https://qcibbtoeccdfmvrjlare.supabase.co<br>
+        Anon Key：Settings → API Keys → Legacy → anon public をコピー<br>
         設定は端末に保存されます。
       </div>
     </div>
