@@ -295,10 +295,16 @@ async function deleteOrder(id){
 
 async function saveJewelEdit(id){
   var jewel=getJewelString(editSets);
+  if(!jewel){alert('少なくとも1つのジュエリーを完全に選択してください（外惑星・内惑星・アスペクトの3つ）');return;}
   var res=await supabaseClient.from('orders').update({jewel:jewel,status:2}).eq('id',id);
   if(res.error){alert('保存エラー: '+res.error.message);return;}
   await loadOrders();
-  showDetail(id);
+  // ordersを更新してカードの表示だけ更新、画面はそのまま
+  var o=orders.find(function(x){return String(x.id)===String(id);});
+  if(o){
+    var nameEl=document.querySelector('.form-title');
+    alert('保存しました：'+jewel);
+  }
 }
 
 function renderList(){
