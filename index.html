@@ -130,6 +130,17 @@
       <div class="action-row"><button type="button" class="btn btn-save" onclick="saveSettings()">設定を保存して接続</button></div>
       <div class="notice">Supabase URL：https://qcibbtoeccdfmvrjlare.supabase.co<br>Anon Key：Settings → API Keys → Legacy → anon public をコピー<br>設定は端末に保存されます。</div>
     </div>
+    <div class="setting-box">
+      <div class="setting-title">メールテンプレート編集</div>
+      <div class="field"><label>確認メール</label><textarea id="tpl-confirm" rows="8"></textarea></div>
+      <div class="field"><label>発送メール</label><textarea id="tpl-ship" rows="6"></textarea></div>
+      <div class="field"><label>催促返信文</label><textarea id="tpl-reply" rows="6"></textarea></div>
+      <div class="action-row"><button type="button" class="btn btn-save" onclick="saveTemplates()">テンプレートを保存</button></div>
+      <div class="notice">
+        使える変数：{name}=お客様名、{qty}=個数、{jewel}=ジュエリー種類<br>
+        保存すると次回からそのテンプレートが使われます。
+      </div>
+    </div>
   </div>
 </div>
 <script>
@@ -143,6 +154,51 @@ var newSets=[{outer:null,inner:null,asp:null}];
 var editSets=[];
 var supabaseClient=null;
 var orders=[];
+
+var DEFAULT_CONFIRM = 'いつもありがとうございます。
+農家生まれの Nan です。
+
+このたびは「ヘリオジュエリードロップ」をお選びいただき、誠にありがとうございます。
+
+お客様のホロスコープに基づいてジュエリーをお仕立てするため、ご希望の種類についてご確認させてください。
+
+ご注文：{qty}
+
+ご不明な点がございましたら、お気軽にお申し付けください。
+どうぞよろしくお願いいたします。';
+var DEFAULT_SHIP = 'いつもありがとうございます。
+農家生まれの Nan です。
+
+{name} さまのヘリオジュエリードロップ（{jewel}）を本日発送いたしました。
+到着まで今しばらくお待ちください。
+
+引き続きどうぞよろしくお願いいたします。';
+var DEFAULT_REPLY = 'この度はご連絡をいただきありがとうございます。
+農家生まれの Nan です。
+
+現在、{name} さまのジュエリーを丁寧に制作中でございます。
+今しばらくお待ちいただけますと幸いです。
+
+完成次第、すぐにご連絡いたします。
+どうぞよろしくお願いいたします。';
+
+function loadTemplates(){
+  document.getElementById('tpl-confirm').value = localStorage.getItem('tpl-confirm') || DEFAULT_CONFIRM;
+  document.getElementById('tpl-ship').value = localStorage.getItem('tpl-ship') || DEFAULT_SHIP;
+  document.getElementById('tpl-reply').value = localStorage.getItem('tpl-reply') || DEFAULT_REPLY;
+}
+
+function saveTemplates(){
+  localStorage.setItem('tpl-confirm', document.getElementById('tpl-confirm').value);
+  localStorage.setItem('tpl-ship', document.getElementById('tpl-ship').value);
+  localStorage.setItem('tpl-reply', document.getElementById('tpl-reply').value);
+  alert('テンプレートを保存しました');
+}
+
+function applyTemplate(tplKey, o){
+  var tpl = localStorage.getItem(tplKey) || (tplKey==='tpl-confirm'?DEFAULT_CONFIRM:tplKey==='tpl-ship'?DEFAULT_SHIP:DEFAULT_REPLY);
+  return tpl.replace(/{name}/g, o.name||'').replace(/{qty}/g, o.qty||'').replace(/{jewel}/g, o.jewel||'');
+}
 
 function initSupabase(){
   var url=localStorage.getItem('sb_url');
@@ -406,6 +462,7 @@ function showTab(name){
   if(name==='setting'){
     document.getElementById('s-url').value=localStorage.getItem('sb_url')||'';
     document.getElementById('s-key').value=localStorage.getItem('sb_key')||'';
+    loadTemplates();
   }
 }
 
