@@ -116,7 +116,7 @@
       <button class="btn btn-save" type="button" onclick="saveOrder()">受注を登録する</button>
       <button class="btn btn-mail" type="button" onclick="genNewMail('confirm')">確認メールを生成</button>
     </div>
-    <div class="mail-box" id="new-mail-box"><div class="mail-text" id="new-mail-text"></div><button class="copy-btn" type="button" onclick="copyText('new-mail-text',this)">コピー</button></div>
+    <div class="mail-box" id="new-mail-box"><textarea class="mail-text" id="new-mail-text" rows="12" style="width:100%;border:none;background:transparent;resize:vertical;outline:none;font-size:13px;line-height:1.9;font-family:'Zen Kaku Gothic New',sans-serif;color:var(--ink)"></textarea><button class="copy-btn" type="button" onclick="copyText('new-mail-text',this)">コピー</button></div>
   </div>
   <div id="detail" class="screen">
     <button class="back-btn" type="button" onclick="showTab('list')">← 一覧に戻る</button>
@@ -396,7 +396,7 @@ function showDetail(id){
     '<button class="btn btn-mail" type="button" onclick="genDetailMail(\''+id+'\',\'confirm\')">確認メール</button>'+
     '<button class="btn btn-mail" type="button" onclick="genDetailMail(\''+id+'\',\'ship\')">発送メール</button>'+
     '<button class="btn btn-mail" type="button" onclick="genDetailMail(\''+id+'\',\'reply\')">催促返信文</button></div>'+
-    '<div class="mail-box" id="detail-mail-box"><div class="mail-text" id="detail-mail-text"></div>'+
+    '<div class="mail-box" id="detail-mail-box"><textarea class="mail-text" id="detail-mail-text" rows="12" style="width:100%;border:none;background:transparent;resize:vertical;outline:none;font-size:13px;line-height:1.9;font-family:Zen Kaku Gothic New,sans-serif;color:#2E2519"></textarea>'+
     '<button class="copy-btn" type="button" onclick="copyText(\'detail-mail-text\',this)">コピー</button></div></div>';
   // ジュエリーUIを構築してからボタンにeventを設定
   buildJewelUI('edit-jewel-sets',editSets);
@@ -412,18 +412,20 @@ function mailText(o,type){
 
 function genNewMail(type){
   var o={name:document.getElementById('f-name').value||'お客様',qty:document.getElementById('f-qty').value+'個',jewel:getJewelString(newSets)||''};
-  document.getElementById('new-mail-text').textContent=mailText(o,type);
+  document.getElementById('new-mail-text').value=mailText(o,type);
   document.getElementById('new-mail-box').style.display='block';
 }
 
 function genDetailMail(id,type){
   var o=orders.find(function(x){return String(x.id)===String(id);});
-  document.getElementById('detail-mail-text').textContent=mailText(o,type);
+  document.getElementById('detail-mail-text').value=mailText(o,type);
   document.getElementById('detail-mail-box').style.display='block';
 }
 
 function copyText(elId,btn){
-  navigator.clipboard.writeText(document.getElementById(elId).textContent);
+  var el=document.getElementById(elId);
+  var txt=el.tagName==='TEXTAREA'?el.value:el.textContent;
+  navigator.clipboard.writeText(txt);
   btn.textContent='コピーしました';
   setTimeout(function(){btn.textContent='コピー';},2000);
 }
