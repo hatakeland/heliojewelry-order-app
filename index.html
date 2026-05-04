@@ -203,14 +203,16 @@ function buildPlanetBtns(arr,group,containerId,idx,sets){
   var el=document.getElementById(containerId+'-'+group+'-'+idx);
   if(!el) return;
   var s=sets[idx];
+  // groupキーをfullKeyに変換
+  var fullKey=group==='out'?'outer':group==='in'?'inner':'asp';
   // 未定ボタン
   var nb=document.createElement('button');
-  nb.type='button';nb.className='pBtn'+(s[group]===null?' sel-none':'');
+  nb.type='button';nb.className='pBtn'+(s[fullKey]===null?' sel-none':'');
   nb.textContent='未定';
   nb.onclick=function(){
     clearGroupBtns(el,group);
     nb.classList.add('sel-none');
-    sets[idx][group]=null;
+    sets[idx][fullKey]=null;
     updatePreviewEl(containerId,idx,sets[idx]);
   };
   el.appendChild(nb);
@@ -219,11 +221,11 @@ function buildPlanetBtns(arr,group,containerId,idx,sets){
     var b=document.createElement('button');
     b.type='button';b.className='pBtn';
     b.textContent=v;
-    if(s[group]===v) b.classList.add('sel-'+group);
+    if(s[fullKey]===v) b.classList.add('sel-'+group);
     b.onclick=function(){
       clearGroupBtns(el,group);
       b.classList.add('sel-'+group);
-      sets[idx][group]=v;
+      sets[idx][fullKey]=v;
       updatePreviewEl(containerId,idx,sets[idx]);
     };
     el.appendChild(b);
