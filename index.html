@@ -559,27 +559,43 @@ const STATUS = [
 ];
 
 let sel = { outer: null, inner: null, asp: null };
-let supabase = null;
+let supabaseClient = null;
 let orders = [];
 let currentId = null;
 
 // ---- Supabase初期化 ----
 function initSupabase() {
-  const url = 'https://qcibbtoeccdfmvrjlare.supabase.co';
-  const key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjaWJidG9lY2NkZm12cmpsYXJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc4MjE5NTgsImV4cCI6MjA5MzM5Nzk1OH0.HShktnBNdnatgMWrqwYe8pZwyRt4wYZrYUFjMfRufSk';
-  try {
-    supabase = window.supabase.createClient(url, key);
-    document.getElementById('db-status').textContent = '接続済み';
-    document.getElementById('db-status').style.color = '#A8D5B8';
-    loadOrders();
-  } catch(e) {
-    document.getElementById('db-status').textContent = '接続エラー';
+  const url = localStorage.getItem('sb_url');
+  const key = localStorage.getItem('sb_key');
+  if (url && key) {
+    try {
+      supabaseClient = window.supabase.createClient(url, key);
+      document.getElementById('db-status').textContent = '接続済み';
+      document.getElementById('db-status').style.color = '#A8D5B8';
+      loadOrders();
+    } catch(e) {
+      document.getElementById('db-status').textContent = '接続エラー';
+    }
+  } else {
+    document.getElementById('order-list').innerHTML = '<div class="empty">設定タブからSupabaseを接続してください</div>';
+    updateMetrics([]);
   }
 }
+
+function saveSettings() {
+  const url = document.getElementById('s-url').value.trim();
+  const key = document.getElementById('s-key').value.trim();
+  if (!url || !key) { alert('URLとKeyを入力してください'); return; }
+  localStorage.setItem('sb_url', url);
+  localStorage.setItem('sb_key', key);
+  initSupabase();
+  showTab('list');
+}
+
 // ---- データ読み込み ----
 async function loadOrders() {
-  if (!supabase) return;
-  const { data, error } = await supabase
+  if (!supabaseClient) return;
+  const { data, error } = await supabaseClient
     .from('orders')
     .select('*')
     .order('created_at', { ascending: false });
@@ -590,9 +606,10 @@ async function loadOrders() {
   orders = data || [];
   renderList();
 }
+
 // ---- 受注保存 ----
 async function saveOrder() {
-  if (!supabase) { alert('先に設定タブでSupabaseを接続してください'); return; }
+  if (!supabaseClient) { alert('先に設定タブでSupabaseを接続してください'); return; }
   const name = document.getElementById('f-name').value.trim();
   if (!name) { alert('お客様名を入力してください'); return; }
   const order = {
@@ -604,7 +621,7 @@ async function saveOrder() {
     jewel: (sel.outer && sel.inner && sel.asp) ? `${sel.outer}×${sel.inner}×${sel.asp}` : null,
     status: 0
   };
-  const { error } = await supabase.from('orders').insert([order]);
+  const { error } = await supabaseClient.from('orders').insert([order]);
   if (error) { alert('保存に失敗しました: ' + error.message); return; }
   // フォームリセット
   document.getElementById('f-name').value = '';
@@ -622,7 +639,7 @@ async function saveOrder() {
 async function changeStatus(id, dir) {
   const o = orders.find(x => x.id === id);
   const newStatus = Math.max(0, Math.min(5, o.status + dir));
-  await supabase.from('orders').update({ status: newStatus }).eq('id', id);
+  await supabaseClient.from('orders').update({ status: newStatus }).eq('id', id);
   await loadOrders();
   showDetail(id);
 }
@@ -795,6 +812,10 @@ function showTab(name) {
   const idx = tabs.indexOf(name);
   if (idx >= 0) document.querySelectorAll('.tab')[idx].classList.add('active');
   if (name === 'list') loadOrders();
+  if (name === 'setting') {
+    document.getElementById('s-url').value = localStorage.getItem('sb_url') || '';
+    document.getElementById('s-key').value = localStorage.getItem('sb_key') || '';
+  }
 }
 
 // ---- 初期化 ----
